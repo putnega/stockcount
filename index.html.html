@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>StockCount</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase -->
+<!-- Firebase replaced with REST API -->
+<style>
+:root{
+  --bg:#0f1117;--surface:#181c26;--surface2:#1e2330;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f0f2f7;--text2:#8b92a8;--text3:#555e72;
+  --accent:#4f8ef7;--accent-dim:rgba(79,142,247,0.15);
+  --green:#3ecf8e;--green-dim:rgba(62,207,142,0.14);
+  --red:#f76f6f;--red-dim:rgba(247,111,111,0.14);
+  --amber:#f5a623;--amber-dim:rgba(245,166,35,0.14);
+  --radius:14px;--radius-sm:8px;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#header{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg)}
+#header-left{}
+#header-title{font-size:17px;font-weight:600;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px}
+#header-sub{font-size:11px;color:var(--text2);margin-top:1px;font-family:var(--mono)}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#content::-webkit-scrollbar{display:none}
+#tab-bar{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg)}
+.tab{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;padding:11px 4px;cursor:pointer;color:var(--text3);transition:color 0.15s,border-color 0.15s;border:none;border-bottom:2px solid transparent;background:none;font-family:var(--sans)}
+.tab.active{color:var(--accent);border-bottom:2px solid var(--accent)}
+.tab svg{width:17px;height:17px;flex-shrink:0}
+.tab span{font-size:13px;font-weight:500;letter-spacing:0.01em}
+.page{padding:16px;padding-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px}
+input[type=text],input[type=number],select{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:16px;color:var(--text);font-family:var(--sans);outline:none;appearance:none;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--accent)}
+input::placeholder{color:var(--text3)}
+.btn{padding:12px 18px;border-radius:var(--radius-sm);font-size:15px;font-weight:500;cursor:pointer;font-family:var(--sans);border:1px solid var(--border2);background:var(--surface2);color:var(--text);display:inline-flex;align-items:center;gap:8px;transition:opacity 0.15s,transform 0.1s}
+.btn:active{transform:scale(0.97);opacity:0.8}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-success{background:var(--green);border-color:var(--green);color:#fff}
+.btn-danger{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+.btn-full{width:100%;justify-content:center}
+.btn-lg{padding:16px 20px;font-size:16px;border-radius:var(--radius)}
+.btn-sm{padding:7px 12px;font-size:13px}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:500;font-family:var(--mono)}
+.badge-match{background:var(--green-dim);color:var(--green)}
+.badge-mismatch{background:var(--red-dim);color:var(--red)}
+.badge-pending{background:var(--amber-dim);color:var(--amber)}
+.badge-accent{background:var(--accent-dim);color:var(--accent)}
+.badge-gray{background:var(--surface2);color:var(--text2)}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.metric-label{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:5px}
+.metric-val{font-size:26px;font-weight:600;font-family:var(--mono);letter-spacing:-1px}
+.metric-val.green{color:var(--green)}
+.metric-val.red{color:var(--red)}
+.metric-val.amber{color:var(--amber)}
+.metric-val.accent{color:var(--accent)}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s}
+.upload-zone:active{border-color:var(--accent);background:var(--accent-dim)}
+.upload-zone p{color:var(--text2);font-size:14px;margin-top:4px}
+.upload-zone small{color:var(--text3);font-size:12px;font-family:var(--mono)}
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity 0.1s}
+.list-row:last-child{border-bottom:none}
+.list-row:active{opacity:0.6}
+.list-row-info strong{font-size:15px;font-weight:500;font-family:var(--mono);letter-spacing:-0.3px}
+.list-row-info small{display:block;font-size:12px;color:var(--text2);margin-top:2px;font-family:var(--mono)}
+.list-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.progress-wrap{background:var(--surface2);border-radius:6px;height:8px;overflow:hidden;margin-top:8px}
+.progress-fill{height:8px;border-radius:6px;background:var(--green);transition:width 0.5s ease}
+.bin-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.bin-code{font-size:22px;font-weight:600;font-family:var(--mono);letter-spacing:-0.5px}
+.bin-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.qty-display{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:14px}
+.qty-display-label{font-size:12px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
+.qty-display-val{font-size:52px;font-weight:600;font-family:var(--mono);letter-spacing:-2px;color:var(--text);min-height:64px;display:flex;align-items:center;justify-content:center}
+.qty-display-val.has-val{color:var(--accent)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.np-btn{padding:18px;font-size:20px;font-weight:500;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;font-family:var(--mono);color:var(--text);text-align:center;transition:background 0.1s,transform 0.1s;user-select:none}
+.np-btn:active{background:var(--surface2);transform:scale(0.94)}
+.np-btn.del{color:var(--red)}
+.np-btn.clr{color:var(--amber);font-size:14px;font-family:var(--sans)}
+.result-table{width:100%;border-collapse:collapse;font-size:13px}
+.result-table th{text-align:left;padding:8px 5px;color:var(--text3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border)}
+.result-table td{padding:9px 5px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px}
+.result-table tr:last-child td{border-bottom:none}
+.diff-pos{color:var(--green)}
+.diff-neg{color:var(--red)}
+.diff-zero{color:var(--text3)}
+#toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:11px 20px;border-radius:30px;font-size:14px;font-weight:500;opacity:0;transition:opacity 0.25s,transform 0.25s;pointer-events:none;white-space:nowrap;z-index:999}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.search-box{position:relative;margin-bottom:12px}
+.search-box input{padding-left:42px}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text3);width:18px;height:18px}
+.segment{display:flex;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;gap:3px;margin-bottom:14px}
+.seg-btn{flex:1;padding:8px;font-size:13px;font-weight:500;background:none;border:none;color:var(--text2);border-radius:6px;cursor:pointer;font-family:var(--sans);transition:background 0.15s,color 0.15s}
+.seg-btn.active{background:var(--surface);color:var(--text)}
+.empty{text-align:center;padding:32px 16px;color:var(--text3)}
+.empty p{font-size:14px}
+.logo-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.logo-dot.online{background:var(--green);box-shadow:0 0 6px var(--green)}
+.logo-dot.offline{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.logo-dot.connecting{background:var(--text3)}
+.info-line{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px}
+.info-line span{color:var(--text2)}
+.info-line strong{font-family:var(--mono);font-weight:500}
+.count-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.count-nav button{background:none;border:none;color:var(--accent);font-family:var(--sans);font-size:15px;cursor:pointer;padding:4px;display:flex;align-items:center;gap:6px}
+.divider{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+.divider-line{flex:1;height:1px;background:var(--border)}
+.divider span{font-size:12px;color:var(--text3)}
+.view-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.view-badge.admin{background:var(--accent-dim);color:var(--accent)}
+.view-badge.count{background:var(--green-dim);color:var(--green)}
+.team-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+.team-row:last-child{border-bottom:none}
+.team-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.mini-prog-wrap{background:var(--surface2);border-radius:3px;height:4px;overflow:hidden;margin-top:5px}
+.mini-prog-fill{height:4px;border-radius:3px;transition:width 0.4s ease}
+.team-btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.team-btn{padding:14px 10px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);cursor:pointer;font-family:var(--sans);color:var(--text);text-align:center;transition:border-color 0.15s,background 0.15s}
+.team-btn:active{background:var(--surface2)}
+.team-btn .tb-name{font-size:15px;font-weight:600}
+.team-btn .tb-bins{font-size:12px;color:var(--text2);margin-top:4px;font-family:var(--mono)}
+/* sync indicator */
+.sync-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
+.sync-row{display:flex;align-items:center;font-size:12px;color:var(--text3);margin-bottom:12px;font-family:var(--mono)}
+
+</style>
+</head>
+<body>
+
+
+
+<div id="app">
+  <div id="header">
+    <div id="header-left">
+      <div id="header-title">
+        <span class="logo-dot connecting" id="sync-dot"></span>StockCount
+      </div>
+      <div id="header-sub">Warehouse Inventory</div>
+    </div>
+    <div id="header-right"></div>
+  </div>
+  <div id="tab-bar" style="display:none"></div>
+  <div id="content"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Firebase REST config ───────────────────────────────────
+const DB_URL = "https://pm-dc-stockcount-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+// ── App state ──────────────────────────────────────────────
+let systemData = [];
+let teams      = [];
+let countData  = {};
+let currentView   = '';
+let currentTeamId = null;
+let currentItem   = null;
+let npVal         = '';
+let countFilter   = 'all';
+let dbOnline      = false;
+let pollTimer     = null;
+
+const COLORS = ['#4f8ef7','#3ecf8e','#f5a623','#f76f6f','#b57bee','#38bdf8','#fb923c','#34d399','#f472b6','#a3e635'];
+
+// ── Firebase REST API helpers ──────────────────────────────
+async function dbGet(path) {
+  try {
+    const r = await fetch(`${DB_URL}/${path}.json`);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+async function dbSet(path, data) {
+  try {
+    const r = await fetch(`${DB_URL}/${path}.json`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  } catch(e) { return false; }
+}
+
+async function dbPatch(path, data) {
+  try {
+    const r = await fetch(`${DB_URL}/${path}.json`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  } catch(e) { return false; }
+}
+
+async function dbDelete(path) {
+  try {
+    const r = await fetch(`${DB_URL}/${path}.json`, { method: 'DELETE' });
+    return r.ok;
+  } catch(e) { return false; }
+}
+
+// Poll for changes every 5 seconds
+async function pollDB() {
+  try {
+    const [sd, td, cd] = await Promise.all([
+      dbGet('systemData'), dbGet('teams'), dbGet('countData')
+    ]);
+    systemData = sd ? Object.values(sd) : [];
+    teams      = td ? Object.values(td) : [];
+    countData  = cd || {};
+    dbOnline   = true;
+    updateSyncDot(true);
+    onDataChange();
+  } catch(e) {
+    dbOnline = false;
+    updateSyncDot(false);
+  }
+}
+
+function updateSyncDot(online) {
+  dbOnline = online;
+  const dot = document.getElementById('sync-dot');
+  if (dot) {
+    dot.className = 'logo-dot ' + (online ? 'online' : 'offline');
+    dot.title = online ? 'Live sync active' : 'Not connected';
+  }
+}
+
+function startPolling() {
+  pollDB();
+  pollTimer = setInterval(pollDB, 5000);
+}
+
+// ── Start app immediately ──────────────────────────────────
+function startApp() {
+  route();
+  startPolling();
+}
+
+// Start immediately on page load
+startApp();
+
+// re-render active view when DB data changes
+function onDataChange() {
+  if (currentView === 'admin') {
+    const active = document.querySelector('.tab.active');
+    if (!active) return;
+    const tab = active.id;
+    if (tab === 'at-dash') buildDash();
+    else if (tab === 'at-teams') renderTeams();
+    else if (tab === 'at-data') { /* data tab doesn't need live refresh */ }
+  } else {
+    // count view — refresh list if open
+    if (document.getElementById('clist')) fillList(myBins(), document.getElementById('srch') ? document.getElementById('srch').value : '');
+    if (document.getElementById('pdash')) renderMyProgress();
+  }
+}
+
+// ── Router ─────────────────────────────────────────────────
+function route() {
+  const p = new URLSearchParams(window.location.search);
+  currentView = p.get('view') === 'count' ? 'count' : 'admin';
+  currentView === 'admin' ? bootAdmin() : bootCount();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════════════════
+function bootAdmin() {
+  document.getElementById('header-right').innerHTML = '<span class="view-badge admin">Admin</span>';
+  document.getElementById('header-sub').textContent = 'Admin Panel';
+  const tb = document.getElementById('tab-bar');
+  tb.style.display = 'flex';
+  tb.innerHTML = `
+    <button class="tab active" id="at-data" onclick="aTab('data',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <span>Data</span>
+    </button>
+    <button class="tab" id="at-teams" onclick="aTab('teams',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      <span>Teams</span>
+    </button>
+    <button class="tab" id="at-dash" onclick="aTab('dash',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <span>Dashboard</span>
+    </button>`;
+  renderData();
+}
+
+function aTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  if (name === 'data')  renderData();
+  if (name === 'teams') renderTeams();
+  if (name === 'dash')  renderDash();
+}
+
+// ── Data tab ───────────────────────────────────────────────
+function renderData() {
+  document.getElementById('content').innerHTML = `<div class="page">
+    <div class="card">
+      <div class="card-title">Upload system inventory</div>
+      <div class="upload-zone" onclick="document.getElementById('finp').click()">
+        <svg style="width:36px;height:36px;margin:0 auto 10px;display:block;color:var(--text2)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <p>Tap to upload Excel / CSV</p>
+        <small>Storage Bin Location · Batch No · Material Code · Material Desc · System Qty</small>
+      </div>
+      <input type="file" id="finp" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this)">
+    </div>
+    <div class="divider"><div class="divider-line"></div><span>or</span><div class="divider-line"></div></div>
+    <button class="btn btn-full" onclick="loadDemo()" style="margin-bottom:14px">Load demo data (10 bins)</button>
+    <div id="data-preview"></div>
+  </div>`;
+  if (systemData.length) renderDataPreview();
+}
+
+function renderDataPreview(detected, missing) {
+  const el = document.getElementById('data-preview');
+  if (!el) return;
+  let html = `<div class="card"><div class="card-title">Loaded data</div>
+    <div class="info-line"><span>Total bins</span><strong>${systemData.length.toLocaleString()}</strong></div>
+    <div class="info-line" style="margin-bottom:12px"><span>Total system qty</span><strong>${systemData.reduce((s,r)=>s+r.qty,0).toLocaleString()}</strong></div>`;
+  if (missing && missing.length)
+    html += `<div style="background:var(--amber-dim);border-radius:var(--radius-sm);padding:10px;margin-bottom:10px;font-size:13px;color:var(--amber)">Columns not mapped: ${missing.join(', ')}</div>`;
+  if (detected)
+    html += `<div style="margin-bottom:12px">${Object.entries(detected).map(([f,c])=>`
+      <div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text3)">${f}</span>
+        <span style="font-family:var(--mono);color:${c?'var(--green)':'var(--text3)'}">${c||'not found'}</span>
+      </div>`).join('')}</div>`;
+  html += systemData.slice(0,4).map(r=>`
+    <div class="list-row" style="cursor:default">
+      <div class="list-row-info">
+        <strong>${r.bin}</strong>
+        <small style="color:var(--accent)">${r.invNo}</small>
+        <small>${r.matCode} · ${r.matDesc}</small>
+        <small>${r.batch}${r.sloc?' · Sloc:'+r.sloc:''}${r.uom?' · '+r.uom:''}${r.expDate?' · Exp:'+r.expDate:''}</small>
+      </div>
+      <span style="font-family:var(--mono);font-size:14px;color:var(--text2)">${r.qty}</span>
+    </div>`).join('');
+  if (systemData.length > 4) html += `<p style="font-size:12px;color:var(--text3);padding-top:8px">+ ${systemData.length-4} more bins</p>`;
+  html += `</div><button class="btn btn-danger btn-full btn-sm" onclick="clearAll()" style="margin-bottom:14px;justify-content:center">Clear all data from database</button>`;
+  el.innerHTML = html;
+}
+
+function clearAll() {
+  if (!confirm('This will delete ALL system data, teams and count data from the database for all devices. Are you sure?')) return;
+  PrsystemData=[]; teams=[]; countData={};
+  renderDataPreview();
+  toast('Clearing database...');
+  Promise.all([dbDelete('systemData'), dbDelete('teams'), dbDelete('countData')])
+    .then(() => toast('All data cleared'));
+}
+
+// ── Teams tab ──────────────────────────────────────────────
+function renderTeams() {
+  document.getElementById('content').innerHTML = `<div class="page">
+    <div class="card">
+      <div class="card-title">Add team</div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:13px;color:var(--text2);display:block;margin-bottom:5px">Team name</label>
+        <input type="text" id="tnm" placeholder="e.g. Team A, Zone 1" maxlength="30">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;color:var(--text2);display:block;margin-bottom:5px">Inventory No range (leave blank = all unassigned)</label>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center">
+          <input type="text" id="invfrom" placeholder="From e.g. INVPM000001" style="font-size:14px">
+          <span style="color:var(--text3);font-size:13px;text-align:center">to</span>
+          <input type="text" id="invto" placeholder="To e.g. INVPM000100" style="font-size:14px">
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-top:5px">Leave blank to auto-assign all remaining unassigned inventory lines</p>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addTeam()">Add team</button>
+    </div>
+    <div id="teams-list"></div>
+    <div id="url-card"></div>
+  </div>`;
+  renderTeamsList();
+}
+
+function addTeam() {
+  const name = document.getElementById('tnm').value.trim();
+  if (!name) { toast('Enter a team name'); return; }
+  const team = {
+    id: 'T' + Date.now(),
+    name,
+    color: COLORS[teams.length % COLORS.length],
+    invFrom: document.getElementById('invfrom').value.trim().toUpperCase(),
+    invTo:   document.getElementById('invto').value.trim().toUpperCase()
+  };
+  teams.push(team);
+  renderTeamsList();
+  document.getElementById('tnm').value = '';
+  document.getElementById('invfrom').value = '';
+  document.getElementById('invto').value = '';
+  toast('Team "' + name + '" added — syncing...');
+  dbSet('teams/' + team.id, team).then(ok => {
+    if (!ok) toast('Team saved locally only');
+  });
+}
+
+function deleteTeam(id) {
+  if (!confirm('Delete this team and their count data?')) return;
+  teams = teams.filter(t => t.id !== id);
+  Object.keys(countData).forEach(k => {
+    if (countData[k] && countData[k].teamId === id) delete countData[k];
+  });
+  renderTeamsList();
+  toast('Team deleted — syncing...');
+  const delPromises = [dbDelete('teams/' + id)];
+  Object.keys(countData).forEach(k => {
+    if (countData[k] && countData[k].teamId === id) delPromises.push(dbDelete('countData/' + k));
+  });
+  Promise.all(delPromises);
+}
+
+function getBinsForTeam(team) {
+  if (!systemData.length) return [];
+  const from = (team.invFrom || '').trim().toUpperCase();
+  const to   = (team.invTo   || '').trim().toUpperCase();
+  if (!from && !to) {
+    const claimed = new Set();
+    teams.forEach(t => { if (t.id !== team.id) getBinsForTeam(t).forEach(b => claimed.add(b.invNo)); });
+    return systemData.filter(r => !claimed.has(r.invNo));
+  }
+  return systemData.filter(r => {
+    const inv = (r.invNo || '').toUpperCase();
+    if (from && to) return inv >= from && inv <= to;
+    if (from) return inv >= from;
+    if (to)   return inv <= to;
+    return true;
+  });
+}
+
+function renderTeamsList() {
+  const el = document.getElementById('teams-list');
+  const uc = document.getElementById('url-card');
+  if (!el) return;
+  if (!teams.length) {
+    el.innerHTML = `<div class="empty"><p style="color:var(--text3)">No teams yet.</p></div>`;
+    if (uc) uc.innerHTML = ''; return;
+  }
+  el.innerHTML = `<div class="card"><div class="card-title">Teams (${teams.length})</div>` +
+    teams.map(t => {
+      const bins = getBinsForTeam(t);
+      const cnt  = bins.filter(b => countData[binKey(b.bin, b.invNo)]).length;
+      const pct  = bins.length ? Math.round(cnt/bins.length*100) : 0;
+      return `<div class="team-row">
+        <div class="team-dot" style="background:${t.color}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;font-size:14px">${t.name}</div>
+          <div style="font-size:12px;color:var(--text2);font-family:var(--mono)">${bins.length} bins · ${cnt} counted · ${pct}%</div>
+          <div class="mini-prog-wrap"><div class="mini-prog-fill" style="width:${pct}%;background:${t.color}"></div></div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteTeam('${t.id}')">✕</button>
+      </div>`;
+    }).join('') + '</div>';
+
+  if (uc) uc.innerHTML = `<div class="card" style="border-color:var(--accent)">
+    <div class="card-title">Counter URL — share with floor staff</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Staff open this URL on their phone. They'll pick their team from a list.</p>
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;font-family:var(--mono);font-size:12px;word-break:break-all;color:var(--accent);margin-bottom:10px">${getCountURL()}</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-full" onclick="copyURL()">Copy URL</button>
+      <button class="btn btn-full" onclick="showQR()">Show QR code</button>
+    </div>
+  </div>`;
+}
+
+function getCountURL() {
+  const u = new URL(window.location.href);
+  u.searchParams.set('view','count');
+  return u.toString();
+}
+function copyURL() {
+  navigator.clipboard.writeText(getCountURL())
+    .then(() => toast('URL copied! Share via WhatsApp or SMS'))
+    .catch(() => { prompt('Copy this URL:', getCountURL()); });
+}
+function showQR() {
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(getCountURL())}`;
+  const w = window.open('','_blank','width=320,height=360');
+  w.document.write(`<html><body style="margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0f1117;color:#f0f2f7;font-family:sans-serif;gap:12px">
+    <p style="font-size:13px;opacity:0.6">Scan to open counter view</p>
+    <img src="${url}" style="border-radius:12px">
+    <p style="font-size:11px;opacity:0.4;word-break:break-all;padding:0 16px;text-align:center">${getCountURL()}</p>
+  </body></html>`);
+}
+
+// ── Dashboard tab ──────────────────────────────────────────
+function renderDash() {
+  document.getElementById('content').innerHTML = `<div class="page" id="pdash-wrap">
+    <div id="dm"></div><div id="dt"></div><div id="dtbl"></div>
+  </div>`;
+  buildDash();
+}
+
+function buildDash() {
+  if (!document.getElementById('dm')) return;
+  const total      = systemData.length;
+  const totalSysQty = systemData.reduce((s,r) => s+r.qty, 0);
+  const counted    = systemData.filter(r => countData[binKey(r.bin, r.invNo)]).length;
+  let matchedQty = 0;
+  let totalPhyQty = 0;
+  systemData.forEach(r => {
+    const c = countData[binKey(r.bin, r.invNo)];
+    if (c && c.qty === r.qty && c.matCode === r.matCode) matchedQty += r.qty;
+    if (c) totalPhyQty += c.qty;
+  });
+  const acc = totalSysQty > 0 ? (totalPhyQty/totalSysQty*100).toFixed(2) : null;
+  const accColor = acc===null?'accent':parseFloat(acc)>=99?'green':parseFloat(acc)>=95?'amber':'red';
+  const prog = total > 0 ? Math.round(counted/total*100) : 0;
+
+  document.getElementById('dm').innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:12px;color:var(--text3);font-family:var(--mono)">
+      <span class="sync-dot" style="background:${dbOnline?'var(--green)':'var(--amber)'}"></span>
+      ${dbOnline ? 'Live — updates in real time' : 'Reconnecting...'}
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Total bins</div><div class="metric-val accent">${total.toLocaleString()}</div></div>
+      <div class="metric"><div class="metric-label">Counted</div><div class="metric-val amber">${counted.toLocaleString()}</div></div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">System qty</div><div class="metric-val accent">${totalSysQty.toLocaleString()}</div></div>
+      <div class="metric"><div class="metric-label">Physical qty</div><div class="metric-val green">${totalPhyQty.toLocaleString()}</div></div>
+    </div>
+    <div class="metric" style="margin-bottom:12px">
+      <div class="metric-label">Qty-based accuracy</div>
+      <div class="metric-val ${accColor}" style="font-size:40px">${acc!==null?acc+'%':'—'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Physical qty ÷ Total system qty × 100</div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:500">Counting progress</span>
+        <span style="font-size:12px;color:var(--text2);font-family:var(--mono)">${counted} / ${total} (${prog}%)</span>
+      </div>
+      <div class="progress-wrap"><div class="progress-fill" style="width:${prog}%"></div></div>
+    </div>`;
+
+  if (teams.length) {
+    document.getElementById('dt').innerHTML = `<div class="card"><div class="card-title">By team</div>` +
+      teams.map(t => {
+        const bins = getBinsForTeam(t);
+        const tsq  = bins.reduce((s,r) => s+r.qty, 0);
+        const tmq  = bins.reduce((s,r) => { const c=countData[binKey(r.bin, r.invNo)]; return s+(c&&c.qty===r.qty&&c.matCode===r.matCode?r.qty:0); }, 0);
+        const tpq  = bins.reduce((s,r) => { const c=countData[binKey(r.bin, r.invNo)]; return s+(c?c.qty:0); }, 0);
+        const tc   = bins.filter(b => countData[binKey(b.bin, b.invNo)]).length;
+        const ta   = tsq > 0 ? (tpq/tsq*100).toFixed(1) : null;
+        const tp   = bins.length ? Math.round(tc/bins.length*100) : 0;
+        const ac   = ta===null?'var(--text3)':parseFloat(ta)>=99?'var(--green)':parseFloat(ta)>=95?'var(--amber)':'var(--red)';
+        return `<div class="team-row">
+          <div class="team-dot" style="background:${t.color}"></div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-weight:500;font-size:14px">${t.name}</span>
+              <span style="font-family:var(--mono);font-size:13px;color:${ac}">${ta!==null?ta+'%':'—'}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text2);font-family:var(--mono)">${bins.length} bins · ${tc} done · phy: ${tpq.toLocaleString()} / sys: ${tsq.toLocaleString()}</div>
+            <div class="mini-prog-wrap"><div class="mini-prog-fill" style="width:${tp}%;background:${t.color}"></div></div>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+  } else {
+    document.getElementById('dt').innerHTML = '';
+  }
+
+  const fval = document.getElementById('dff') ? document.getElementById('dff').value : 'all';
+  let rows = systemData.map(r => {
+    const c    = countData[binKey(r.bin, r.invNo)];
+    const status = !c ? 'pending' : (c.qty===r.qty && c.matCode===r.matCode ? 'match' : 'mismatch');
+    const team = teams.find(t => c && c.teamId === t.id);
+    return { invNo:r.invNo, bin:r.bin, sloc:r.sloc, matCode:r.matCode, batch:r.batch, expDate:r.expDate, uom:r.uom, sysQty:r.qty, phyQty:c?c.qty:undefined, status, teamName:team?team.name:'—' };
+  });
+  if (fval !== 'all') rows = rows.filter(r => r.status === fval);
+
+  document.getElementById('dtbl').innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">Results (${rows.length})</div>
+      <div style="display:flex;gap:6px">
+        <select id="dff" onchange="buildDash()" style="width:auto;font-size:13px;padding:6px 8px">
+          <option value="all">All</option><option value="match">Match</option>
+          <option value="mismatch">Mismatch</option><option value="pending">Pending</option>
+        </select>
+        <button class="btn btn-sm" onclick="exportCSV()">CSV</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="result-table">
+        <thead><tr><th>Inv No</th><th>Bin</th><th>Sloc</th><th>Mat Code</th><th>Batch</th><th>Exp Date</th><th>UoM</th><th>Sys</th><th>Phy</th><th>Diff</th><th>Status</th><th>Team</th></tr></thead>
+        <tbody>${rows.slice(0,200).map(r => {
+          const d  = r.phyQty !== undefined ? r.phyQty - r.sysQty : null;
+          const dc = d===null?'':d===0?'diff-zero':d>0?'diff-pos':'diff-neg';
+          const ds = d===null?'—':d>0?'+'+d:String(d);
+          return `<tr>
+            <td style="color:var(--accent);font-size:11px">${r.invNo||'—'}</td>
+            <td>${r.bin}</td>
+            <td style="font-size:11px">${r.sloc||'—'}</td>
+            <td style="font-size:11px">${r.matCode}</td>
+            <td style="font-size:11px">${r.batch}</td>
+            <td style="font-size:11px">${r.expDate||'—'}</td>
+            <td style="font-size:11px">${r.uom||'—'}</td>
+            <td>${r.sysQty}</td><td>${r.phyQty!==undefined?r.phyQty:'—'}</td>
+            <td class="${dc}">${ds}</td>
+            <td><span class="badge badge-${r.status}">${r.status}</span></td>
+            <td style="font-size:11px;color:var(--text2)">${r.teamName}</td>
+          </tr>`;}).join('')}</tbody>
+      </table>
+    </div>
+    ${rows.length>200?`<p style="font-size:12px;color:var(--text3);padding-top:8px">Showing 200 of ${rows.length}. Export CSV for all.</p>`:''}
+  </div>`;
+  if (document.getElementById('dff')) document.getElementById('dff').value = fval;
+}
+
+function exportCSV() {
+  if (!systemData.length) { toast('No data'); return; }
+  const h = ['Inventory No','Bin Location','Sloc','Material Code','Material Desc','Batch No','Exp Date','UoM','System Qty','Physical Qty','Difference','Status','Team'];
+  const r = systemData.map(r => {
+    const c    = countData[binKey(r.bin, r.invNo)];
+    const s    = !c ? 'pending' : (c.qty===r.qty&&c.matCode===r.matCode ? 'match' : 'mismatch');
+    const team = teams.find(t => c && c.teamId===t.id);
+    return [r.invNo||'', r.bin, r.sloc||'', r.matCode, r.matDesc, r.batch, r.expDate||'', r.uom||'', r.qty, c?c.qty:'', c?c.qty-r.qty:'', s, team?team.name:''];
+  });
+  const csv = [h,...r].map(row => row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'stockcount_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); toast('CSV exported');
+}
+
+// ═══════════════════════════════════════════════════════════
+// COUNT VIEW
+// ═══════════════════════════════════════════════════════════
+function bootCount() {
+  document.getElementById('header-right').innerHTML = '<span class="view-badge count">Counter</span>';
+  if (!systemData.length) {
+    document.getElementById('content').innerHTML = `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:24px;text-align:center">
+      <svg style="width:48px;height:48px;color:var(--text3);margin-bottom:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      <p style="font-size:16px;font-weight:500;margin-bottom:8px">No data loaded</p>
+      <p style="font-size:14px;color:var(--text2)">Admin must upload system data first</p>
+    </div>`;
+    return;
+  }
+  if (!teams.length) {
+    currentTeamId = '__all__';
+    document.getElementById('header-sub').textContent = 'All bins';
+    bootCountTabs(); return;
+  }
+  showTeamSelect();
+}
+
+function showTeamSelect() {
+  currentTeamId = null;
+  document.getElementById('header-sub').textContent = 'Select your team';
+  document.getElementById('tab-bar').style.display = 'none';
+  document.getElementById('content').innerHTML = `<div style="padding:20px">
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px">Select your assigned team:</p>
+    <div class="team-btn-grid">${teams.map(t => {
+      const bins = getBinsForTeam(t);
+      const cnt  = bins.filter(b => countData[binKey(b.bin, b.invNo)]).length;
+      const pct  = bins.length ? Math.round(cnt/bins.length*100) : 0;
+      return `<div class="team-btn" onclick="pickTeam('${t.id}')">
+        <div style="width:12px;height:12px;border-radius:50%;background:${t.color};margin:0 auto 8px"></div>
+        <div class="tb-name">${t.name}</div>
+        <div class="tb-bins">${bins.length} bins</div>
+        <div class="mini-prog-wrap" style="margin-top:8px"><div class="mini-prog-fill" style="width:${pct}%;background:${t.color}"></div></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">${cnt}/${bins.length} done</div>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+function pickTeam(id) {
+  currentTeamId = id;
+  const t = teams.find(t => t.id === id);
+  document.getElementById('header-sub').textContent = t ? t.name : '';
+  bootCountTabs();
+}
+
+function bootCountTabs() {
+  const tb = document.getElementById('tab-bar');
+  tb.style.display = 'flex';
+  tb.innerHTML = `
+    <button class="tab active" id="ct-count" onclick="cTab('count',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span>Count</span>
+    </button>
+    <button class="tab" id="ct-prog" onclick="cTab('prog',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <span>My Progress</span>
+    </button>
+    ${teams.length ? `<button class="tab" onclick="showTeamSelect()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <span>Switch</span>
+    </button>` : ''}`;
+  cTab('count', document.getElementById('ct-count'));
+}
+
+function cTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  if (name === 'count') renderCountPage();
+  if (name === 'prog')  renderMyProgress();
+}
+
+function myBins() {
+  if (currentTeamId === '__all__') return systemData;
+  const t = teams.find(t => t.id === currentTeamId);
+  return t ? getBinsForTeam(t) : [];
+}
+
+// ── Count list ─────────────────────────────────────────────
+function renderCountPage() {
+  document.getElementById('content').innerHTML = `<div class="page">
+    <div id="clv">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="srch" placeholder="Search bin, material..." oninput="fillList(myBins(),this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="segment">
+        <button class="seg-btn ${countFilter==='all'?'active':''}" onclick="setCF('all',this)">All</button>
+        <button class="seg-btn ${countFilter==='pending'?'active':''}" onclick="setCF('pending',this)">Pending</button>
+        <button class="seg-btn ${countFilter==='counted'?'active':''}" onclick="setCF('counted',this)">Counted</button>
+      </div>
+      <div id="clist"></div>
+    </div>
+    <div id="cev" style="display:none"></div>
+  </div>`;
+  fillList(myBins(), '');
+}
+
+function setCF(f, btn) {
+  countFilter = f;
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  fillList(myBins(), document.getElementById('srch') ? document.getElementById('srch').value : '');
+}
+
+function fillList(bins, search) {
+  const el = document.getElementById('clist');
+  if (!el) return;
+  if (!bins.length) { el.innerHTML = `<div class="empty"><p>No bins assigned to your team</p></div>`; return; }
+  let items = bins;
+  if (search) {
+    const s = search.toLowerCase();
+    items = items.filter(r =>
+      (r.invNo   || '').toLowerCase().includes(s) ||
+      (r.bin     || '').toLowerCase().includes(s) ||
+      (r.matCode || '').toLowerCase().includes(s) ||
+      (r.matDesc || '').toLowerCase().includes(s) ||
+      (r.batch   || '').toLowerCase().includes(s) ||
+      (r.sloc    || '').toLowerCase().includes(s)
+    );
+  }
+  if (countFilter === 'pending') items = items.filter(r => !countData[binKey(r.bin, r.invNo)]);
+  if (countFilter === 'counted') items = items.filter(r => !!countData[binKey(r.bin, r.invNo)]);
+  if (!items.length) { el.innerHTML = `<div class="empty"><p>No bins found</p></div>`; return; }
+  el.innerHTML = items.map(r => {
+    const c  = countData[binKey(r.bin, r.invNo)];
+    const st = !c ? 'pending' : (c.qty===r.qty && c.matCode===r.matCode ? 'match' : 'mismatch');
+    return `<div class="list-row" onclick="openEntry('${r.invNo||r.bin}')">
+      <div class="list-row-info">
+        <strong>${r.bin}</strong>
+        <small style="color:var(--accent);font-family:var(--mono)">${r.invNo}</small>
+        <small>${r.matCode} · ${r.matDesc}</small>
+        <small>${r.batch}${r.sloc?' · Sloc:'+r.sloc:''}${r.uom?' · '+r.uom:''}${r.expDate?' · Exp:'+r.expDate:''}</small>
+      </div>
+      <div class="list-row-right">
+        <span class="badge badge-${st}">${st}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text3)"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Count entry ────────────────────────────────────────────
+function openEntry(key) {
+  const item = systemData.find(r => r.invNo === key || r.bin === key);
+  if (!item) return;
+  currentItem = item; npVal = '';
+  document.getElementById('clv').style.display = 'none';
+  const ev = document.getElementById('cev');
+  ev.style.display = 'block';
+  ev.innerHTML = `
+    <div class="count-nav">
+      <button onclick="closeEntry()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Back
+      </button>
+    </div>
+    <div class="bin-header">
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:4px">${item.invNo}</div>
+      <div class="bin-code">${item.bin}</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:5px;font-style:italic">${item.matDesc}</div>
+      <div class="bin-meta">
+        <span class="badge badge-accent">${item.matCode}</span>
+        <span class="badge badge-gray">${item.batch}</span>
+        ${item.sloc ? '<span class="badge badge-gray">Sloc: '+item.sloc+'</span>' : ''}
+        ${item.uom  ? '<span class="badge badge-gray">'+item.uom+'</span>' : ''}
+      </div>
+      ${item.expDate ? '<div style="font-size:12px;color:var(--amber);margin-top:6px">Exp: '+item.expDate+'</div>' : ''}
+    </div>
+    <div class="qty-display">
+      <div class="qty-display-label">Physical count qty</div>
+      <div class="qty-display-val" id="qv">—</div>
+    </div>
+    <div class="numpad">
+      <button class="np-btn" ontouchstart="np('1')" onclick="np('1')">1</button>
+      <button class="np-btn" ontouchstart="np('2')" onclick="np('2')">2</button>
+      <button class="np-btn" ontouchstart="np('3')" onclick="np('3')">3</button>
+      <button class="np-btn" ontouchstart="np('4')" onclick="np('4')">4</button>
+      <button class="np-btn" ontouchstart="np('5')" onclick="np('5')">5</button>
+      <button class="np-btn" ontouchstart="np('6')" onclick="np('6')">6</button>
+      <button class="np-btn" ontouchstart="np('7')" onclick="np('7')">7</button>
+      <button class="np-btn" ontouchstart="np('8')" onclick="np('8')">8</button>
+      <button class="np-btn" ontouchstart="np('9')" onclick="np('9')">9</button>
+      <button class="np-btn clr" ontouchstart="np('C')" onclick="np('C')">CLEAR</button>
+      <button class="np-btn" ontouchstart="np('0')" onclick="np('0')">0</button>
+      <button class="np-btn del" ontouchstart="np('⌫')" onclick="np('⌫')">⌫</button>
+    </div>
+    <button class="btn btn-success btn-full btn-lg" onclick="saveCount()">Save count</button>`;
+  document.querySelectorAll('.np-btn').forEach(b => b.addEventListener('touchstart', e => e.preventDefault(), { passive:false }));
+}
+
+function closeEntry() {
+  currentItem = null; npVal = '';
+  document.getElementById('clv').style.display = 'block';
+  document.getElementById('cev').style.display = 'none';
+  fillList(myBins(), document.getElementById('srch') ? document.getElementById('srch').value : '');
+}
+
+function np(v) {
+  if (v==='C') npVal='';
+  else if (v==='⌫') npVal=npVal.slice(0,-1);
+  else { if (npVal==='0') npVal=v; else npVal+=v; if (npVal.length>7) npVal=npVal.slice(0,7); }
+  const el=document.getElementById('qv'); if(!el) return;
+  if (!npVal) { el.textContent='—'; el.classList.remove('has-val'); }
+  else { el.textContent=parseInt(npVal).toLocaleString(); el.classList.add('has-val'); }
+}
+
+function saveCount() {
+  if (!npVal || !currentItem) { toast('Enter a quantity first'); return; }
+  const qty = parseInt(npVal);
+  const key = binKey(currentItem.bin, currentItem.invNo);
+  const entry = { qty, matCode: currentItem.matCode, invNo: currentItem.invNo, teamId: currentTeamId, ts: Date.now() };
+  countData[key] = entry;
+  const match = qty === currentItem.qty;
+  toast(match ? '✓ Saving...' : '⚠ Mismatch — saving...');
+  dbSet('countData/' + key, entry).then(ok => {
+    toast(ok ? (match ? '✓ Saved!' : '⚠ Mismatch saved') : '✓ Saved locally');
+  });
+  closeEntry();
+}
+
+// ── My progress ────────────────────────────────────────────
+function renderMyProgress() {
+  const bins  = myBins();
+  const total = bins.length;
+  const tsq   = bins.reduce((s,r) => s+r.qty, 0);
+  const cnt   = bins.filter(r => countData[binKey(r.bin, r.invNo)]).length;
+  const mq    = bins.reduce((s,r) => { const c=countData[binKey(r.bin, r.invNo)]; return s+(c&&c.qty===r.qty&&c.matCode===r.matCode?r.qty:0); }, 0);
+  const phyQtyTotal = bins.reduce((s,r) => { const c=countData[binKey(r.bin, r.invNo)]; return s+(c?c.qty:0); }, 0);
+  const acc   = tsq > 0 ? (phyQtyTotal/tsq*100).toFixed(1) : null;
+  const prog  = total > 0 ? Math.round(cnt/total*100) : 0;
+  const ac    = acc===null?'accent':parseFloat(acc)>=99?'green':parseFloat(acc)>=95?'amber':'red';
+  const team  = teams.find(t => t.id === currentTeamId);
+
+  document.getElementById('content').innerHTML = `<div class="page" id="pdash">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:12px;color:var(--text3);font-family:var(--mono)">
+      <span class="sync-dot" style="background:${dbOnline?'var(--green)':'var(--amber)'}"></span>
+      ${dbOnline ? 'Live sync active' : 'Reconnecting...'}
+    </div>
+    ${team ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:12px;height:12px;border-radius:50%;background:${team.color}"></div>
+      <span style="font-size:16px;font-weight:600">${team.name}</span>
+    </div>` : ''}
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">My bins</div><div class="metric-val accent">${total}</div></div>
+      <div class="metric"><div class="metric-label">Counted</div><div class="metric-val amber">${cnt}</div></div>
+    </div>
+    <div class="metric" style="margin-bottom:12px">
+      <div class="metric-label">Qty accuracy (my bins)</div>
+      <div class="metric-val ${ac}" style="font-size:40px">${acc!==null?acc+'%':'—'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">${phyQtyTotal.toLocaleString()} physical / ${tsq.toLocaleString()} system qty</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:500">My progress</span>
+        <span style="font-size:12px;color:var(--text2);font-family:var(--mono)">${cnt} / ${total} (${prog}%)</span>
+      </div>
+      <div class="progress-wrap"><div class="progress-fill" style="width:${prog}%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Summary</div>
+      <div class="info-line"><span>Pending</span><strong style="color:var(--amber)">${total-cnt}</strong></div>
+      <div class="info-line"><span>Match</span><strong style="color:var(--green)">${bins.filter(r=>{const c=countData[binKey(r.bin, r.invNo)];return c&&c.qty===r.qty&&c.matCode===r.matCode;}).length}</strong></div>
+      <div class="info-line" style="margin-bottom:0"><span>Mismatch</span><strong style="color:var(--red)">${bins.filter(r=>{const c=countData[binKey(r.bin, r.invNo)];return c&&(c.qty!==r.qty||c.matCode!==r.matCode);}).length}</strong></div>
+    </div>
+  </div>`;
+}
+
+// ── File upload ────────────────────────────────────────────
+function handleFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb   = XLSX.read(e.target.result, { type:'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      if (!rows.length) { toast('File is empty'); return; }
+      parseRows(rows);
+    } catch(err) { toast('Read error: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function findCol(row, cands) {
+  const keys = Object.keys(row);
+  for (const c of cands) { const m=keys.find(k=>k.trim().toLowerCase()===c.toLowerCase()); if(m!==undefined) return m; }
+  for (const c of cands) { const m=keys.find(k=>k.trim().toLowerCase().includes(c.toLowerCase())||c.toLowerCase().includes(k.trim().toLowerCase())); if(m!==undefined) return m; }
+  return null;
+}
+
+function parseRows(rows) {
+  const s   = rows[0];
+  const cB  = findCol(s,['Storage Bin Location','Bin Location','bin location','bin_location','Storage Bin','Bin Loc','bin','BIN','Lokasi Bin']);
+  const cBt = findCol(s,['Batch No','batch no','batch_no','Batch Number','batch','BATCH','No Batch']);
+  const cMC = findCol(s,['Material Code','material code','material_code','Mat Code','matCode','Kode Material','kode']);
+  const cMD = findCol(s,['Material Desc','material desc','material_desc','Description','description','Deskripsi','Nama Material','nama material']);
+  const cQ  = findCol(s,['System Qty','system qty','system_qty','Sys Qty','qty','QTY','Quantity','Jumlah','Stock']);
+  const det = {'Inventory No':cIN,'Bin Location':cB,'Batch No':cBt,'Material Code':cMC,'Material Desc':cMD,'System Qty':cQ,'Sloc':cSL,'Exp Date':cED,'UoM':cUOM};
+  const miss = Object.entries(det).filter(([,v])=>!v).map(([k])=>k);
+  if (!cB || !cQ) { toast('Cannot find required columns'); renderDataPreview(det,miss); return; }
+
+  const cIN  = findCol(s,['Inventory No','inventory no','inv no','inventoryNo','INV NO','No Inventory']);
+  const cSL  = findCol(s,['Sloc','sloc','SLOC','Storage Location','storage location']);
+  const cED  = findCol(s,['Exp Date','exp date','expiry date','Expiry Date','EXP DATE','expired date']);
+  const cUOM = findCol(s,['UoM','uom','UOM','Unit','unit','Satuan']);
+
+  const parsed = rows.map(r => ({
+    invNo:   String(cIN  ? r[cIN]  : '').trim(),
+    bin:     String(cB   ? r[cB]   : '').trim(),
+    batch:   String(cBt  ? r[cBt]  : '').trim(),
+    matCode: String(cMC  ? r[cMC]  : '').trim(),
+    matDesc: String(cMD  ? r[cMD]  : '').trim(),
+    sloc:    String(cSL  ? r[cSL]  : '').trim(),
+    expDate: cED && r[cED] ? (r[cED] instanceof Date ? r[cED].toISOString().slice(0,10) : String(r[cED]).trim()) : '',
+    uom:     String(cUOM ? r[cUOM] : '').trim(),
+    qty:     Number(cQ   ? r[cQ]   : 0) || 0
+  })).filter(r => r.bin || r.invNo);
+
+  if (!parsed.length) { toast('No valid rows found'); return; }
+
+  // Write system data to Firebase as keyed object
+  const obj = {};
+  parsed.forEach(r => { obj[binKey(r.bin, r.invNo)] = r; });
+
+  toast('Uploading ' + parsed.length + ' bins...');
+  Promise.all([dbSet('systemData', obj), dbDelete('countData')])
+    .then(([ok]) => toast(ok ? parsed.length.toLocaleString() + ' bins uploaded!' : 'Saved locally — check connection'));
+}
+
+function loadDemo() {
+  const demo = [
+    {invNo:'INVPM000001',bin:'A-01-001',sloc:'1011',batch:'BT2024-001',matCode:'MAT-1001',matDesc:'Steel Bolt M8x20',expDate:'2026-12-31',uom:'KG',qty:150},
+    {invNo:'INVPM000002',bin:'A-01-002',sloc:'1011',batch:'BT2024-002',matCode:'MAT-1002',matDesc:'Hex Nut M8',expDate:'2026-10-15',uom:'KG',qty:200},
+    {invNo:'INVPM000003',bin:'A-02-001',sloc:'9011',batch:'BT2024-003',matCode:'MAT-1003',matDesc:'Flat Washer 8mm',expDate:'2027-03-20',uom:'PCS',qty:75},
+    {invNo:'INVPM000004',bin:'B-01-001',sloc:'1011',batch:'BT2024-004',matCode:'MAT-2001',matDesc:'PVC Pipe 1/2" x 1m',expDate:'2027-06-01',uom:'PCS',qty:320},
+    {invNo:'INVPM000005',bin:'B-01-002',sloc:'9011',batch:'BT2024-005',matCode:'MAT-2002',matDesc:'PVC Elbow 90deg',expDate:'2027-01-10',uom:'PCS',qty:50},
+    {invNo:'INVPM000006',bin:'B-02-003',sloc:'9014',batch:'BT2024-006',matCode:'MAT-2003',matDesc:'PVC Coupling 1/2"',expDate:'2026-09-30',uom:'PCS',qty:410},
+    {invNo:'INVPM000007',bin:'C-01-001',sloc:'1011',batch:'BT2024-007',matCode:'MAT-3001',matDesc:'Bearing 6202-2RS',expDate:'2027-05-15',uom:'PCS',qty:90},
+    {invNo:'INVPM000008',bin:'C-01-002',sloc:'9011',batch:'BT2024-008',matCode:'MAT-3002',matDesc:'Bearing 6204-2RS',expDate:'2027-08-22',uom:'PCS',qty:175},
+    {invNo:'INVPM000009',bin:'C-02-001',sloc:'1011',batch:'BT2024-009',matCode:'MAT-4001',matDesc:'V-Belt A42',expDate:'2026-11-05',uom:'PCS',qty:230},
+    {invNo:'INVPM000010',bin:'D-01-001',sloc:'9014',batch:'BT2024-010',matCode:'MAT-4002',matDesc:'V-Belt B54',expDate:'2027-02-28',uom:'PCS',qty:60},
+  ];
+  const obj = {};
+  demo.forEach(r => { obj[binKey(r.bin, r.invNo)] = r; });
+  Promise.all([dbSet('systemData', obj), dbDelete('countData')])
+    .then(() => toast('Demo data loaded'));
+}
+
+// ── Helpers ────────────────────────────────────────────────
+// Firebase keys can't have . / # $ [ ]  — replace with _
+function binKey(bin, invNo) {
+  const key = invNo ? invNo : bin;
+  return key.replace(/[./#$[\]]/g, '_');
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+</script>
+</body>
+</html>
