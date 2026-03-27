@@ -105,6 +105,8 @@ input::placeholder{color:var(--text3)}
 .empty{text-align:center;padding:32px 16px;color:var(--text3)}
 .empty p{font-size:14px}
 .logo-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .logo-dot.online{background:var(--green);box-shadow:0 0 6px var(--green)}
 .logo-dot.offline{background:var(--amber);box-shadow:0 0 6px var(--amber)}
 .logo-dot.connecting{background:var(--text3)}
@@ -262,7 +264,17 @@ function onDataChange() {
     else if (tab === 'at-teams') renderTeamsList(); // only refresh list, not the form
     else if (tab === 'at-data') { /* data tab doesn't need live refresh */ }
   } else {
-    // count view — refresh list if open
+    // count view
+    const noData = document.getElementById('count-no-data');
+    const teamSel = document.getElementById('team-select-grid');
+    if (noData && systemData.length) {
+      // Data just arrived — boot the count view properly
+      bootCount(); return;
+    }
+    if (teamSel && teams.length) {
+      // Teams just arrived — refresh team selection screen
+      showTeamSelect(); return;
+    }
     if (document.getElementById('clist')) fillList(myBins(), document.getElementById('srch') ? document.getElementById('srch').value : '');
     if (document.getElementById('pdash')) renderMyProgress();
   }
@@ -679,10 +691,11 @@ function exportCSV() {
 function bootCount() {
   document.getElementById('header-right').innerHTML = '<span class="view-badge count">Counter</span>';
   if (!systemData.length) {
-    document.getElementById('content').innerHTML = `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:24px;text-align:center">
+    document.getElementById('content').innerHTML = `<div id="count-no-data" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:24px;text-align:center">
       <svg style="width:48px;height:48px;color:var(--text3);margin-bottom:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-      <p style="font-size:16px;font-weight:500;margin-bottom:8px">No data loaded</p>
-      <p style="font-size:14px;color:var(--text2)">Admin must upload system data first</p>
+      <div class="spinner" style="margin-bottom:12px"></div>
+      <p style="font-size:16px;font-weight:500;margin-bottom:8px">Loading data...</p>
+      <p style="font-size:14px;color:var(--text2)">Connecting to database, please wait</p>
     </div>`;
     return;
   }
@@ -700,7 +713,7 @@ function showTeamSelect() {
   document.getElementById('tab-bar').style.display = 'none';
   document.getElementById('content').innerHTML = `<div style="padding:20px">
     <p style="font-size:14px;color:var(--text2);margin-bottom:16px">Select your assigned team:</p>
-    <div class="team-btn-grid">${teams.map(t => {
+    <div id="team-select-grid" class="team-btn-grid">${teams.map(t => {
       const bins = getBinsForTeam(t);
       const cnt  = bins.filter(b => countData[binKey(b.bin, b.invNo)]).length;
       const pct  = bins.length ? Math.round(cnt/bins.length*100) : 0;
