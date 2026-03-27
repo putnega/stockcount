@@ -934,19 +934,18 @@ function findCol(row, cands) {
 
 function parseRows(rows) {
   const s   = rows[0];
-  const cB  = findCol(s,['Storage Bin Location','Bin Location','bin location','bin_location','Storage Bin','Bin Loc','bin','BIN','Lokasi Bin']);
-  const cBt = findCol(s,['Batch No','batch no','batch_no','Batch Number','batch','BATCH','No Batch']);
-  const cMC = findCol(s,['Material Code','material code','material_code','Mat Code','matCode','Kode Material','kode']);
-  const cMD = findCol(s,['Material Desc','material desc','material_desc','Description','description','Deskripsi','Nama Material','nama material']);
-  const cQ  = findCol(s,['System Qty','system qty','system_qty','Sys Qty','qty','QTY','Quantity','Jumlah','Stock']);
-  const det = {'Inventory No':cIN,'Bin Location':cB,'Batch No':cBt,'Material Code':cMC,'Material Desc':cMD,'System Qty':cQ,'Sloc':cSL,'Exp Date':cED,'UoM':cUOM};
-  const miss = Object.entries(det).filter(([,v])=>!v).map(([k])=>k);
-  if (!cB || !cQ) { toast('Cannot find required columns'); renderDataPreview(det,miss); return; }
-
   const cIN  = findCol(s,['Inventory No','inventory no','inv no','inventoryNo','INV NO','No Inventory']);
+  const cB   = findCol(s,['Storage Bin Location','Bin Location','bin location','bin_location','Storage Bin','Bin Loc','bin','BIN','Lokasi Bin']);
+  const cBt  = findCol(s,['Batch No','batch no','batch_no','Batch Number','batch','BATCH','No Batch']);
+  const cMC  = findCol(s,['Material Code','material code','material_code','Mat Code','matCode','Kode Material','kode']);
+  const cMD  = findCol(s,['Material Desc','material desc','material_desc','Description','description','Deskripsi','Nama Material','nama material']);
+  const cQ   = findCol(s,['System Qty','system qty','system_qty','Sys Qty','qty','QTY','Quantity','Jumlah','Stock','Total System Qty','total system qty']);
   const cSL  = findCol(s,['Sloc','sloc','SLOC','Storage Location','storage location']);
   const cED  = findCol(s,['Exp Date','exp date','expiry date','Expiry Date','EXP DATE','expired date']);
   const cUOM = findCol(s,['UoM','uom','UOM','Unit','unit','Satuan']);
+  const det  = {'Inventory No':cIN,'Bin Location':cB,'Batch No':cBt,'Material Code':cMC,'Material Desc':cMD,'System Qty':cQ,'Sloc':cSL,'Exp Date':cED,'UoM':cUOM};
+  const miss = Object.entries(det).filter(([,v])=>!v).map(([k])=>k);
+  if (!cB || !cQ) { toast('Cannot find required columns'); renderDataPreview(det,miss); return; }
 
   const parsed = rows.map(r => ({
     invNo:   String(cIN  ? r[cIN]  : '').trim(),
