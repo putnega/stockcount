@@ -240,7 +240,7 @@ function updateSyncDot(online) {
 
 function startPolling() {
   pollDB();
-  pollTimer = setInterval(pollDB, 5000);
+  pollTimer = setInterval(pollDB, 10000);
 }
 
 // ── Start app immediately ──────────────────────────────────
@@ -259,7 +259,7 @@ function onDataChange() {
     if (!active) return;
     const tab = active.id;
     if (tab === 'at-dash') buildDash();
-    else if (tab === 'at-teams') renderTeams();
+    else if (tab === 'at-teams') renderTeamsList(); // only refresh list, not the form
     else if (tab === 'at-data') { /* data tab doesn't need live refresh */ }
   } else {
     // count view — refresh list if open
@@ -481,7 +481,7 @@ function getBinsForTeam(team) {
 function renderTeamsList() {
   const el = document.getElementById('teams-list');
   const uc = document.getElementById('url-card');
-  if (!el) return;
+  if (!el) return; // Teams page not open, do nothing
   if (!teams.length) {
     el.innerHTML = `<div class="empty"><p style="color:var(--text3)">No teams yet.</p></div>`;
     if (uc) uc.innerHTML = ''; return;
